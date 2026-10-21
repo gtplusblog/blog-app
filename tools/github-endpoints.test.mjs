@@ -1,5 +1,5 @@
 /**
- * 增量刷新所用 GitHub 端点的真实校验（跑在 gutun.github.io 这个真实仓库上）。
+ * 增量刷新所用 GitHub 端点的真实校验（跑在 gtplusblog.github.io 这个真实仓库上）。
  *
  * 验证四件事：
  *   1. 分支 head 能取到 commit / tree sha（fetchTreeSnapshot 的前提）
@@ -16,8 +16,8 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 
-const OWNER = 'gutun'
-const REPO = 'gutun.github.io'
+const OWNER = 'gtplusblog'
+const REPO = 'gtplusblog.github.io'
 const POSTS_DIR = 'content/posts'
 const TOKEN = process.env.GITHUB_TOKEN ?? process.env.GH_TOKEN ?? ''
 const H = {

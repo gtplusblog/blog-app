@@ -29,12 +29,12 @@ beforeEach(() => {
 
 const SETTINGS = {
   token: 'test-token',
-  owner: 'gutun',
-  repo: 'gutun.github.io',
+  owner: 'gtplusblog',
+  repo: 'gtplusblog.github.io',
   postsDir: 'content/posts',
   imagesDir: 'static/images',
   filePrefix: 'diary',
-  siteUrl: 'https://gutun.github.io/',
+  siteUrl: 'https://gtplusblog.github.io/',
   theme: 'auto',
 }
 
@@ -63,10 +63,10 @@ const COMMIT_PREV = {
 const REPO_INFO = {
   default_branch: 'master',
   private: false,
-  full_name: 'gutun/gutun.github.io',
+  full_name: 'gtplusblog/gtplusblog.github.io',
 }
 
-const API = 'https://api.github.com/repos/gutun/gutun.github.io'
+const API = 'https://api.github.com/repos/gtplusblog/gtplusblog.github.io'
 
 const TREE_RESPONSE = {
   sha: SHA.treeHead,

@@ -108,8 +108,8 @@ function lanAddresses() {
 const MOCK_SCRIPT = `
 <script>
 (function () {
-  var OWNER = 'gutun';
-  var REPO = 'gutun.github.io';
+  var OWNER = 'gtplusblog';
+  var REPO = 'gtplusblog.github.io';
   var API = 'https://api.github.com/repos/' + OWNER + '/' + REPO;
 
   function b64(s) { return btoa(unescape(encodeURIComponent(s))); }
@@ -233,7 +233,7 @@ const MOCK_SCRIPT = `
     token: 'mock-token-not-real',
     owner: OWNER, repo: REPO,
     postsDir: 'content/posts', imagesDir: 'static/images',
-    filePrefix: 'diary', siteUrl: 'https://gutun.github.io/', theme: 'auto'
+    filePrefix: 'diary', siteUrl: 'https://gtplusblog.github.io/', theme: 'auto'
   };
   // 联调时不注册 Service Worker：它的缓存会干扰「每次打开走哪条链路」的观察
   if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) {

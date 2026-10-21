@@ -6,8 +6,8 @@ import { VitePWA } from 'vite-plugin-pwa'
  * `base: './'` + hash 路由 => 构建产物是「相对路径 + 单页」，
  * 因此同一份 dist 可以放在任意路径下运行：
  *   - 本地 `vite preview`            -> http://localhost:4173/
- *   - GitHub Pages 项目站点          -> https://gutun.github.io/blog-app/
- *   - GitHub Pages 用户站点          -> https://gutun.github.io/app/
+ *   - GitHub Pages 项目站点          -> https://gtplusblog.github.io/blog-app/
+ *   - GitHub Pages 用户站点          -> https://gtplusblog.github.io/app/
  * 无需在构建时写死 base，也不用担心仓库子路径问题。
  */
 export default defineConfig({

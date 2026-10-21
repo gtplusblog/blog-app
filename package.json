@@ -1,9 +1,9 @@
 {
-  "name": "gutun-blog-app",
+  "name": "gtplusblog-blog-app",
   "private": true,
   "version": "1.0.0",
   "packageManager": "pnpm@11.7.0",
-  "description": "手机端 Hugo 博客写作 App（PWA）：新建/编辑文章、分类标签、Markdown 正文，直连 GitHub 提交到 gutun.github.io",
+  "description": "手机端 Hugo 博客写作 App（PWA）：新建/编辑文章、分类标签、Markdown 正文，直连 GitHub 提交到 gtplusblog.github.io",
   "type": "module",
   "scripts": {
     "dev": "vite",

@@ -1,7 +1,7 @@
 # GUTUN 博客写作 App（`Blog/APP/`）
 
 在手机上写博客的 App：**设置标题 → 选分类和标签 → 用 Markdown 写正文 → 一键发布**。
-发布时直接调用 GitHub API 往 `gutun/gutun.github.io` 提交一个 `.md` 文件，
+发布时直接调用 GitHub API 往 `gtplusblog/gtplusblog.github.io` 提交一个 `.md` 文件，
 和你现在在 VSCode 里 `hugo new` + `git push` 的效果完全一样，
 提交后 GitHub Actions 会自动重新构建 GitHub Pages。
 
@@ -24,7 +24,7 @@
 
 1. **需要一个 GitHub Token**（Fine-grained PAT，只授权这一个仓库的 Contents 读写），
    保存在手机浏览器本地，不上传任何第三方。
-2. **GitHub Pages 必须开着**（你的 `baseURL` 是 `https://gutun.github.io/`，已经是了）。
+2. **GitHub Pages 必须开着**（你的 `baseURL` 是 `https://gtplusblog.github.io/`，已经是了）。
 3. **App 本身要放在一个 HTTPS 地址上**才能「安装」到手机桌面。
    两种做法见第 3 节：部署到 GitHub Pages（推荐），或先在本机局域网打开试用。
 
@@ -111,7 +111,7 @@ repost:
 1. 打开 <https://github.com/settings/personal-access-tokens/new>
 2. **Token name**：随便填，例如 `blog-app`
 3. **Expiration**：按需选择（例如 1 年）
-4. **Repository access** → 选 *Only select repositories* → 勾选 **`gutun.github.io`**
+4. **Repository access** → 选 *Only select repositories* → 勾选 **`gtplusblog.github.io`**
 5. **Permissions** → *Repository permissions* → 找到 **Contents** → 选 **Read and write**
    （Metadata 会自动变成 Read-only，这是必须的）
 6. 点 **Generate token**，把 `github_pat_...` 复制下来（只显示一次）
@@ -128,7 +128,7 @@ App 需要一个 HTTPS 地址。最省事的办法是把它放到一个**新仓�
 git init
 git add .
 git commit -m "blog writing app"
-git remote add origin https://github.com/gutun/blog-app.git   # 先在 GitHub 上建好空仓库
+git remote add origin https://github.com/gtplusblog/blog-app.git   # 先在 GitHub 上建好空仓库
 git push -u origin main
 ```
 
@@ -136,7 +136,7 @@ git push -u origin main
 仓库里已经带了 `.github/workflows/deploy.yml`，推上去就会自动构建并发布到：
 
 ```
-https://gutun.github.io/blog-app/
+https://gtplusblog.github.io/blog-app/
 ```
 
 构建产物用的是相对路径 + hash 路由，所以放在 `/blog-app/` 这种子路径下也能正常工作。
@@ -167,7 +167,7 @@ pnpm serve          # 会打印手机可访问的局域网地址
 打开 App → 右下角 ⚙ 或「去设置」：
 
 1. 粘贴 Token
-2. 确认用户名 `gutun`、仓库名 `gutun.github.io`
+2. 确认用户名 `gtplusblog`、仓库名 `gtplusblog.github.io`
 3. 点 **测试连接**，看到「✓ 已登录 …」就成功了
 4. 回到列表就能看到你现有的 160 多篇文章
 

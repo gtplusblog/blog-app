@@ -1,9 +1,9 @@
 # 把 APP/ 目录构建并发布到 GitHub Pages（独立的 blog-app 仓库）
 #
-# 前提：只把 APP 目录推到一个单独的 GitHub 仓库（例如 gutun/blog-app），
+# 前提：只把 APP 目录推到一个单独的 GitHub 仓库（例如 gtplusblog/blog-app），
 # 并在该仓库 Settings → Pages → Source 选择 "GitHub Actions"。
 #
-# 这个工作流只属于 App 自己的仓库，完全不会碰 gutun.github.io。
+# 这个工作流只属于 App 自己的仓库，完全不会碰 gtplusblog.github.io。
 name: Deploy Blog App to Pages
 
 on:

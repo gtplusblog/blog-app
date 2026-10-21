@@ -92,7 +92,7 @@ test('外链自动加 target 与 rel', () => {
 })
 
 test('图片带懒加载属性', () => {
-  const { html } = renderMarkdown('![图](https://gutun.github.io/images/a.jpg)', false)
+  const { html } = renderMarkdown('![图](https://gtplusblog.github.io/images/a.jpg)', false)
   assert.match(html, /loading="lazy"/)
 })
 

@@ -195,7 +195,7 @@ export function SettingsScreen({ onBack }: Props) {
             value={settings.siteUrl}
             onChange={(e) => set('siteUrl', e.target.value.trim())}
             autoCapitalize="off"
-            placeholder="https://gutun.github.io/"
+            placeholder="https://gtplusblog.github.io/"
           />
           <p className="field-hint">用于拼图片链接、抓取分类标签候选、跳转文章页面</p>
         </div>

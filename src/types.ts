@@ -2,9 +2,9 @@
 export interface Settings {
   /** Fine-grained PAT，需对目标仓库授予 Contents: Read and write */
   token: string
-  /** 仓库所有者，例如 gutun */
+  /** 仓库所有者，例如 gtplusblog */
   owner: string
-  /** 仓库名，例如 gutun.github.io */
+  /** 仓库名，例如 gtplusblog.github.io */
   repo: string
   /** 文章所在目录，默认 content/posts */
   postsDir: string
@@ -20,18 +20,18 @@ export interface Settings {
 
 export const DEFAULT_SETTINGS: Settings = {
   token: '',
-  owner: 'gutun',
-  repo: 'gutun.github.io',
+  owner: 'gtplusblog',
+  repo: 'gtplusblog.github.io',
   postsDir: 'content/posts',
   imagesDir: 'static/images',
   filePrefix: 'posts',
-  siteUrl: 'https://gutun.github.io/',
+  siteUrl: 'https://gtplusblog.github.io/',
   theme: 'auto',
 }
 
 /**
  * 一篇文章的 front matter。
- * 字段顺序与 `gutun.github.io/archetypes/posts.md` 保持一致，
+ * 字段顺序与 `gtplusblog.github.io/archetypes/posts.md` 保持一致，
  * 因此 APP 生成的文件与 `hugo new posts/xxx.md` 的结果几乎完全相同。
  */
 export interface FrontMatter {
