@@ -18,6 +18,7 @@ interface Props {
   onOpenDraft: (draft: Draft) => void
   onCompose: () => void
   onDemo: () => void
+  onMoments: () => void
   onSettings: () => void
 }
 
@@ -59,7 +60,7 @@ function summarize(content: string) {
   }
 }
 
-export function PostsScreen({ onOpen, onOpenDraft, onCompose, onDemo, onSettings }: Props) {
+export function PostsScreen({ onOpen, onOpenDraft, onCompose, onDemo, onMoments, onSettings }: Props) {
   const { settings } = useStore()
 
   const [posts, setPosts] = useState<PostSummary[]>([])
@@ -322,6 +323,15 @@ export function PostsScreen({ onOpen, onOpenDraft, onCompose, onDemo, onSettings
       <header className="topbar">
         <h1>我的博客</h1>
         <div className="topbar-actions">
+          <button
+            type="button"
+            className="icon-btn"
+            onClick={onMoments}
+            aria-label="动态"
+            title="动态"
+          >
+            ◍
+          </button>
           <button
             type="button"
             className="icon-btn"

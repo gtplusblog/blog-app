@@ -314,6 +314,33 @@ function postsDirOf(settings: Settings): string {
   return settings.postsDir.replace(/^\/+|\/+$/g, '')
 }
 
+/**
+ * 列出任意目录下的直接子文件（不含子目录）。
+ * 动态用的 data/moments 只有每年一个 JSON，用不上文章那套增量逻辑。
+ */
+export async function listBlobPaths(
+  settings: Settings,
+  dir: string,
+): Promise<{ path: string; sha: string }[]> {
+  const clean = dir.replace(/^\/+|\/+$/g, '')
+  if (!clean) return []
+  const snapshot = await fetchTreeSnapshot(settings)
+  const tree = await ghFetch<{ tree: TreeEntry[] }>(
+    settings,
+    `${repoPath(settings)}/git/trees/${encodeURIComponent(snapshot.treeSha)}?recursive=1`,
+  )
+  const files = tree.tree
+    .filter(
+      (e) =>
+        e.type === 'blob' &&
+        e.path.startsWith(`${clean}/`) &&
+        !e.path.slice(clean.length + 1).includes('/'),
+    )
+    .map((e) => ({ path: e.path, sha: e.sha }))
+  for (const file of files) cache.shas.set(file.path, file.sha)
+  return files
+}
+
 function isPostEntry(dir: string) {
   return (e: TreeEntry): boolean =>
     e.type === 'blob' &&

@@ -174,6 +174,19 @@ export function SettingsScreen({ onBack }: Props) {
           </p>
         </div>
         <div className="field">
+          <label htmlFor="momentsDir">动态目录</label>
+          <input
+            id="momentsDir"
+            className="text-input"
+            value={settings.momentsDir}
+            onChange={(e) => set('momentsDir', e.target.value.trim())}
+            autoCapitalize="off"
+          />
+          <p className="field-hint">
+            动态存成 <code>data/moments/2026.json</code>，和工作台共用一个目录
+          </p>
+        </div>
+        <div className="field">
           <label htmlFor="filePrefix">新文件名前缀</label>
           <input
             id="filePrefix"

@@ -19,6 +19,7 @@
     "src/lib/frontmatter.ts",
     "src/lib/markdown.ts",
     "src/lib/github.ts",
+    "src/lib/moments.ts",
     "src/lib/post-cache.ts",
     "src/types.ts"
   ]

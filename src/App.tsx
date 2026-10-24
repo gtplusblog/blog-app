@@ -3,6 +3,7 @@ import { StoreProvider } from './lib/store'
 import { useStore } from './lib/store-context'
 import { ToastHost } from './components/ToastHost'
 import { PostsScreen } from './screens/PostsScreen'
+import { MomentsScreen } from './screens/MomentsScreen'
 import { EditorScreen } from './screens/EditorScreen'
 import { SettingsScreen } from './screens/SettingsScreen'
 import { loadDraft } from './lib/drafts'
@@ -12,6 +13,7 @@ import type { PostSummary } from './types'
 
 export type Route =
   | { kind: 'list' }
+  | { kind: 'moments' }
   | { kind: 'editor'; path?: string; draftId?: string; demo?: boolean }
   | { kind: 'settings' }
 
@@ -38,6 +40,7 @@ export function parseHash(hash: string): Route {
   }
   if (head === 'new') return { kind: 'editor' }
   if (head === 'demo') return { kind: 'editor', demo: true }
+  if (head === 'moments') return { kind: 'moments' }
   if (head === 'settings') return { kind: 'settings' }
   return { kind: 'list' }
 }
@@ -54,15 +57,17 @@ export function navigate(route: Route): void {
   const hash =
     route.kind === 'list'
       ? '#/'
-      : route.kind === 'settings'
-        ? '#/settings'
-        : route.demo
-          ? '#/demo'
-          : route.path
-            ? `#/edit/${encodeURIComponent(route.path)}`
-            : route.draftId
-              ? `#/edit/draft:${route.draftId}`
-              : '#/new'
+      : route.kind === 'moments'
+        ? '#/moments'
+        : route.kind === 'settings'
+          ? '#/settings'
+          : route.demo
+            ? '#/demo'
+            : route.path
+              ? `#/edit/${encodeURIComponent(route.path)}`
+              : route.draftId
+                ? `#/edit/draft:${route.draftId}`
+                : '#/new'
   if (window.location.hash === hash) return
   window.location.hash = hash
 }
@@ -146,6 +151,14 @@ function Shell() {
             setEditorKey((k) => k + 1)
             navigate({ kind: 'editor', demo: true })
           }}
+          onMoments={() => navigate({ kind: 'moments' })}
+          onSettings={() => navigate({ kind: 'settings' })}
+        />
+      )}
+
+      {route.kind === 'moments' && (
+        <MomentsScreen
+          onBack={backToList}
           onSettings={() => navigate({ kind: 'settings' })}
         />
       )}

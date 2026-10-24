@@ -681,6 +681,96 @@ html[data-theme='dark'] .update-bar {
   text-align: center;
 }
 
+/* ------------------------------------------------------------------ 动态 */
+
+.moments-screen .moment-compose {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.moment-input {
+  width: 100%;
+  min-height: 84px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 16px; /* 小于 16px 时 iOS 会自动放大页面 */
+  font-family: inherit;
+  line-height: 1.7;
+  resize: none;
+}
+
+.moment-input:focus {
+  outline: 2px solid var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.moment-compose-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.moment-count {
+  font-size: 0.75rem;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.moment-count.tight {
+  color: var(--danger);
+}
+
+.moment-row {
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: start;
+  margin-bottom: 8px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow);
+}
+
+.moment-when {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-top: 2px;
+}
+
+.moment-when strong {
+  font-size: 0.86rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.moment-when span {
+  font-size: 0.72rem;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.moment-text {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.7;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.icon-btn.small {
+  min-width: 32px;
+  height: 32px;
+  font-size: 1.15rem;
+}
+
 /* ------------------------------------------------------------------ 编辑器 */
 
 .editor-screen {

@@ -55,6 +55,7 @@
 | 演示模式 | `#/demo` 用示例内容展示排版与公式，不需要 Token、不会提交 |
 | 深色模式 | 跟随系统 / 手动切换，配色沿用 FixIt 的 `#5bbad5` |
 | 可安装（PWA） | 加到手机桌面后全屏运行，有图标、能离线打开 |
+| 动态（短句） | 首页右上角「◍」进入 `#/moments`：写一句话就发，不需要标题和分类 |
 
 生成的 front matter 与 `archetypes/posts.md` 字段顺序、内容一一对应：
 
@@ -190,6 +191,19 @@ pnpm serve          # 会打印手机可访问的局域网地址
 - **摘要**：工具栏 ✂ 插入 `<!--more-->`，它之前的内容会作为摘要
 - **查看构建**：设置页有「查看 GitHub Actions 构建」直达链接
 
+### 只想说一句话：动态
+
+列表页右上角「◍」进入动态页（`#/moments`）：
+
+```
+写一句话 → 「发布」→ 提交到 data/moments/<年份>.json → 博客首页侧栏和 /moments/ 里出现
+```
+
+- 不用标题、不用分类，一条最多 500 字；写完点发布就走，不需要再进编辑页。
+- 时间用手机当前时间，同一条不会重复；列表里点「×」可以删掉某条（会再提交一次）。
+- 存储格式与博客工作台（`studio/`）完全一致：`data/moments/2026.json`，一条一行，
+  所以电脑上发的和手机上发的排在同一个时间线里。
+
 ---
 
 ## 5. 安全说明
@@ -209,10 +223,11 @@ APP/
 ├── index.html                 # 入口（含 iOS 安装相关的 meta）
 ├── vite.config.ts             # base: './' + PWA 清单、Service Worker
 ├── src/
-│   ├── App.tsx                # hash 路由（#/、#/new、#/demo、#/edit/<path>、#/settings）
+│   ├── App.tsx                # hash 路由（#/、#/new、#/moments、#/demo、#/edit/<path>、#/settings）
 │   ├── types.ts               # front matter 数据模型、日期/Base64 工具
 │   ├── lib/
 │   │   ├── github.ts          # GitHub REST：列目录、读文件、写文件、传图片
+│   │   ├── moments.ts         # 动态：读写 data/moments/<年份>.json
 │   │   ├── frontmatter.ts     # front matter 解析 / 生成（与 archetypes 对齐）
 │   │   ├── markdown.ts        # Markdown→HTML + KaTeX 公式 + 任务列表
 │   │   ├── drafts.ts          # IndexedDB 离线草稿
@@ -220,7 +235,7 @@ APP/
 │   │   ├── taxonomy.ts        # 抓取线上分类/标签做联想
 │   │   └── store.ts(x)        # 全局状态（设置、主题、提示条）
 │   ├── components/            # 编辑器、工具栏、分类标签输入、提示条
-│   └── screens/               # 列表页、编辑页、设置页
+│   └── screens/               # 列表页、动态页、编辑页、设置页
 ├── tools/
 │   ├── make_icons.py          # 生成 PWA 图标（Pillow）
 │   ├── serve.mjs              # 零依赖局域网静态服务器
@@ -283,6 +298,8 @@ Markdown 用 `markdown-it`，公式用 KaTeX，编辑器用 CodeMirror 6，
 - CRLF / BOM / 缺 front matter / YAML 日期对象 等边界
 - 公式里的 `_`、`*` 不被 Markdown 强调语法吃掉；`$a$ 与 $b$` 这种误配不会被当成公式
 - 页面上不存在的字段（例如 `collections`）原样保留
+- 动态的写入格式与博客工作台逐字节一致（一条一行、LF、同秒重复时 id 加 `-2`），
+  并且只提交 `data/moments/<年份>.json` 这一个文件
 - （联网，需显式开启）增量刷新用的 `commits` / `trees` / `compare` 端点在真实仓库上可用，
   且 compare 返回的 sha 与 tree 里的 blob sha 一致
 

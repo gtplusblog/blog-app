@@ -10,6 +10,8 @@ export interface Settings {
   postsDir: string
   /** 图片所在目录，默认 static/images */
   imagesDir: string
+  /** 动态（短句）所在目录，默认 data/moments */
+  momentsDir: string
   /** 文章文件名前缀，默认 posts */
   filePrefix: string
   /** 博客线上地址，用于图片链接与「查看站点」 */
@@ -24,6 +26,7 @@ export const DEFAULT_SETTINGS: Settings = {
   repo: 'gtplusblog.github.io',
   postsDir: 'content/posts',
   imagesDir: 'static/images',
+  momentsDir: 'data/moments',
   filePrefix: 'posts',
   siteUrl: 'https://gtplusblog.github.io/',
   theme: 'auto',
