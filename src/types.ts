@@ -10,7 +10,7 @@ export interface Settings {
   postsDir: string
   /** 图片所在目录，默认 static/images */
   imagesDir: string
-  /** 动态（短句）所在目录，默认 data/moments */
+  /** 碎碎念（短句）所在目录，默认 data/moments */
   momentsDir: string
   /** 文章文件名前缀，默认 posts */
   filePrefix: string

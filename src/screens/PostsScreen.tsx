@@ -327,8 +327,8 @@ export function PostsScreen({ onOpen, onOpenDraft, onCompose, onDemo, onMoments,
             type="button"
             className="icon-btn"
             onClick={onMoments}
-            aria-label="动态"
-            title="动态"
+            aria-label="碎碎念"
+            title="碎碎念"
           >
             ◍
           </button>

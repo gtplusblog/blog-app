@@ -40,7 +40,7 @@ export function MomentsScreen({ onBack, onSettings }: Props) {
     try {
       setMoments(await listMoments(settings))
     } catch (err) {
-      setError(err instanceof Error ? err.message : '读取动态失败')
+      setError(err instanceof Error ? err.message : '读取碎碎念失败')
     } finally {
       setLoading(false)
     }
@@ -76,7 +76,7 @@ export function MomentsScreen({ onBack, onSettings }: Props) {
   }
 
   const remove = async (moment: Moment) => {
-    if (!window.confirm(`删除「${moment.text.slice(0, 24)}…」这条动态？`)) return
+    if (!window.confirm(`删除「${moment.text.slice(0, 24)}…」这条碎碎念？`)) return
     try {
       await removeMoment(settings, moment)
       setMoments((prev) => prev.filter((item) => item.id !== moment.id))
@@ -103,7 +103,7 @@ export function MomentsScreen({ onBack, onSettings }: Props) {
         <button type="button" className="icon-btn" onClick={onBack} aria-label="返回">
           ←
         </button>
-        <h1>动态</h1>
+        <h1>碎碎念</h1>
         <div className="topbar-actions">
           <button
             type="button"
@@ -119,7 +119,7 @@ export function MomentsScreen({ onBack, onSettings }: Props) {
 
       {!configured && (
         <div className="notice">
-          <p>还没有配置 GitHub 访问令牌，暂时不能发动态。</p>
+          <p>还没有配置 GitHub 访问令牌，暂时不能发碎碎念。</p>
           <div className="notice-actions">
             <button type="button" className="btn primary" onClick={onSettings}>
               去设置
@@ -165,7 +165,7 @@ export function MomentsScreen({ onBack, onSettings }: Props) {
       )}
 
       {moments.length === 0 && !loading && !error && configured && (
-        <p className="muted center">还没有动态，写第一句吧</p>
+        <p className="muted center">还没有碎碎念，写第一句吧</p>
       )}
 
       {groups.map(([year, items]) => (
@@ -198,7 +198,7 @@ export function MomentsScreen({ onBack, onSettings }: Props) {
         <code>{settings.momentsDir || 'data/moments'}/</code>
         {' · '}
         <a href={`${settings.siteUrl.replace(/\/$/, '')}/moments/`} target="_blank" rel="noreferrer">
-          打开动态页
+          打开碎碎念页
         </a>
       </p>
     </div>

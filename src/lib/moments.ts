@@ -1,5 +1,5 @@
 /**
- * 动态（短句）读写。
+ * 碎碎念（短句）读写。
  *
  * 存储与博客工作台（studio/server/moments.mjs）保持完全一致：
  *   data/moments/<年份>.json
@@ -15,7 +15,7 @@ import { fileExists, listBlobPaths, readFileContents, writeTextFile } from './gi
 import { toHugoDate } from '../types.ts'
 import type { Settings } from '../types.ts'
 
-/** 一条动态的字数上限，与输入框保持一致 */
+/** 一条碎碎念的字数上限，与输入框保持一致 */
 export const MOMENT_MAX_LENGTH = 500
 
 export interface Moment {
@@ -102,7 +102,7 @@ export function sortMoments<T extends { date: string; id: string }>(entries: T[]
 
 /* -------------------------------------------------------------------- 读写 */
 
-/** 读取全部年份的动态，按时间倒序 */
+/** 读取全部年份的碎碎念，按时间倒序 */
 export async function listMoments(settings: Settings): Promise<Moment[]> {
   const files = (await listBlobPaths(settings, momentsDirOf(settings))).filter((file) =>
     /\/\d{4}\.json$/.test(file.path),
@@ -135,16 +135,16 @@ async function readYear(settings: Settings, path: string): Promise<StoredMoment[
   return parseMoments(raw, path)
 }
 
-/** 追加一条动态，返回新条目与提交信息 */
+/** 追加一条碎碎念，返回新条目与提交信息 */
 export async function postMoment(
   settings: Settings,
   text: string,
   when: Date = new Date(),
 ): Promise<{ moment: Moment; path: string; sha: string }> {
   const content = text.trim()
-  if (!content) throw new Error('动态内容不能为空')
+  if (!content) throw new Error('碎碎念内容不能为空')
   if (content.length > MOMENT_MAX_LENGTH) {
-    throw new Error(`一条动态最多 ${MOMENT_MAX_LENGTH} 个字（当前 ${content.length}）`)
+    throw new Error(`一条碎碎念最多 ${MOMENT_MAX_LENGTH} 个字（当前 ${content.length}）`)
   }
 
   const date = toHugoDate(when)
@@ -160,12 +160,12 @@ export async function postMoment(
   const sha = await fileExists(settings, path)
   const written = await writeTextFile(settings, path, serializeMoments(next), {
     sha,
-    message: `moment: ${year} 新增一条动态`,
+    message: `moment: ${year} 新增一条碎碎念`,
   })
   return { moment: { ...entry, year, file: path }, path, sha: written.sha }
 }
 
-/** 删除一条动态 */
+/** 删除一条碎碎念 */
 export async function removeMoment(
   settings: Settings,
   moment: Moment,
@@ -173,11 +173,11 @@ export async function removeMoment(
   const path = moment.file || momentPathFor(settings, moment.year)
   const entries = await readYear(settings, path)
   const next = entries.filter((entry) => entry.id !== moment.id)
-  if (next.length === entries.length) throw new Error('这条动态已经不在文件里了，刷新看看')
+  if (next.length === entries.length) throw new Error('这条碎碎念已经不在文件里了，刷新看看')
   const sha = await fileExists(settings, path)
   const written = await writeTextFile(settings, path, serializeMoments(next), {
     sha,
-    message: `moment: ${moment.year} 删除一条动态`,
+    message: `moment: ${moment.year} 删除一条碎碎念`,
   })
   return { path, sha: written.sha }
 }

@@ -1,5 +1,5 @@
 /**
- * 动态（data/moments/*.json）的读写测试：不联网，mock 掉 GitHub API。
+ * 碎碎念（data/moments/*.json）的读写测试：不联网，mock 掉 GitHub API。
  *
  * 重点锁死三件事，因为博客工作台（studio）写的是同一批文件：
  *   1. 序列化格式 —— 一条一行、字段顺序 id/date/text、LF、文件内时间倒序
@@ -228,7 +228,7 @@ test('postMoment：新的写在最上面，只提交 data/moments/2026.json', as
   assert.equal(result.path, 'data/moments/2026.json')
 
   assert.ok(written, '应当有一次 PUT')
-  assert.equal(written.message, 'moment: 2026 新增一条动态')
+  assert.equal(written.message, 'moment: 2026 新增一条碎碎念')
   assert.equal(written.sha, SHA.file, '更新已有文件必须带 sha')
   assert.equal(written.branch, 'master')
 
@@ -291,7 +291,7 @@ test('removeMoment 只删掉那一条，其它保持原样', async () => {
   })
 
   assert.ok(written)
-  assert.equal(written.message, 'moment: 2026 删除一条动态')
+  assert.equal(written.message, 'moment: 2026 删除一条碎碎念')
   const content = base64DecodeUtf8(written.content)
   assert.ok(!content.includes('要删的'))
   assert.ok(content.includes('留着的'))

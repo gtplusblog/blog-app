@@ -174,7 +174,7 @@ export function SettingsScreen({ onBack }: Props) {
           </p>
         </div>
         <div className="field">
-          <label htmlFor="momentsDir">动态目录</label>
+          <label htmlFor="momentsDir">碎碎念目录</label>
           <input
             id="momentsDir"
             className="text-input"
@@ -183,7 +183,7 @@ export function SettingsScreen({ onBack }: Props) {
             autoCapitalize="off"
           />
           <p className="field-hint">
-            动态存成 <code>data/moments/2026.json</code>，和工作台共用一个目录
+            碎碎念存成 <code>data/moments/2026.json</code>，和工作台共用一个目录
           </p>
         </div>
         <div className="field">
