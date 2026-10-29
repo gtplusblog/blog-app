@@ -33,18 +33,25 @@ export function MomentsScreen({ onBack, onSettings }: Props) {
 
   const configured = Boolean(settings.token && settings.owner && settings.repo)
 
-  const refresh = useCallback(async () => {
-    if (!configured) return
-    setLoading(true)
-    setError(null)
-    try {
-      setMoments(await listMoments(settings))
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '读取碎碎念失败')
-    } finally {
-      setLoading(false)
-    }
-  }, [configured, settings])
+  const refresh = useCallback(
+    async (silent = false) => {
+      if (!configured) return
+      if (!silent) {
+        setLoading(true)
+        setError(null)
+      }
+      try {
+        setMoments(await listMoments(settings))
+        setError(null)
+      } catch (err) {
+        // 后台刷新（发布后那次）失败时不弹红框，免得刚发成功就吓人
+        if (!silent) setError(err instanceof Error ? err.message : '读取碎碎念失败')
+      } finally {
+        if (!silent) setLoading(false)
+      }
+    },
+    [configured, settings],
+  )
 
   useEffect(() => {
     void refresh()
@@ -64,12 +71,16 @@ export function MomentsScreen({ onBack, onSettings }: Props) {
     try {
       const { moment } = await postMoment(settings, content, new Date())
       setText('')
+      setError(null)
       setMoments((prev) => [moment, ...prev])
       pushToast('success', '已经发布，等 GitHub 构建完就会出现在博客上')
       // GitHub 构建需要几十秒；稍后再拉一次，拿到真实顺序
-      window.setTimeout(() => void refresh(), 4000)
+      window.setTimeout(() => void refresh(true), 4000)
     } catch (err) {
-      pushToast('error', err instanceof Error ? err.message : '发布失败')
+      const message = err instanceof Error ? err.message : '发布失败'
+      // 同时写进页面里：toast 会消失，红框留着才能照着处理
+      setError(`发布失败：${message}`)
+      pushToast('error', `发布失败：${message}`)
     } finally {
       setPosting(false)
     }
@@ -160,6 +171,11 @@ export function MomentsScreen({ onBack, onSettings }: Props) {
             <button type="button" className="btn" onClick={() => void refresh()}>
               重试
             </button>
+            {(/token|权限|401|403/i.test(error)) && (
+              <button type="button" className="btn primary" onClick={onSettings}>
+                去设置
+              </button>
+            )}
           </div>
         </div>
       )}

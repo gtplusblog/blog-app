@@ -42,10 +42,22 @@ function headers(token: string): HeadersInit {
 }
 
 async function ghFetch<T>(settings: Settings, path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${API}${path}`, {
-    ...init,
-    headers: { ...headers(settings.token), ...(init?.headers ?? {}) },
-  })
+  const merged: Record<string, string> = {
+    ...(headers(settings.token) as Record<string, string>),
+    ...((init?.headers as Record<string, string> | undefined) ?? {}),
+  }
+  // 写请求必须声明 JSON：否则浏览器会按 text/plain 发，GitHub 可能回 400/422
+  if (typeof init?.body === 'string' && !merged['Content-Type'] && !merged['content-type']) {
+    merged['Content-Type'] = 'application/json'
+  }
+
+  let res: Response
+  try {
+    res = await fetch(`${API}${path}`, { ...init, headers: merged })
+  } catch {
+    // 手机在弱网 / 代理 / 被拦截时，fetch 直接 reject，给一句人话
+    throw new GitHubError(0, '连不上 GitHub（api.github.com 没有响应），检查网络后重试')
+  }
   if (!res.ok) {
     let detail = ''
     try {
@@ -447,6 +459,32 @@ export async function fileExists(settings: Settings, path: string): Promise<stri
     )
     cache.shas.set(path, data.sha)
     return data.sha
+  } catch (err) {
+    if (err instanceof GitHubError && err.status === 404) return null
+    throw err
+  }
+}
+
+/**
+ * 一次调用同时拿到「当前内容」和「当前 sha」，返回 null 表示文件还不存在。
+ *
+ * 写碎碎念时用它代替「raw 读内容 + 缓存取 sha」：
+ *   - 内容和 sha 来自同一个 commit，不会拿着一小时前的 sha 去写（409）
+ *   - raw.githubusercontent.com 有 CDN 延迟，刚提交完可能读到旧版本
+ */
+export async function readFileWithSha(
+  settings: Settings,
+  path: string,
+): Promise<{ text: string; sha: string } | null> {
+  const branch = await resolveDefaultBranch(settings)
+  try {
+    const data = await ghFetch<{ content?: string; encoding?: string; sha: string }>(
+      settings,
+      `${repoPath(settings)}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(branch)}`,
+    )
+    if (!data.sha) throw new GitHubError(0, 'GitHub 没有返回文件的 sha，稍后重试')
+    cache.shas.set(path, data.sha)
+    return { text: decodeContent(data), sha: data.sha }
   } catch (err) {
     if (err instanceof GitHubError && err.status === 404) return null
     throw err

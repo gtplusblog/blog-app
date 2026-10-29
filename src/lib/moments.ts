@@ -11,7 +11,13 @@
  * 规则：一条一行、字段顺序固定 id/date/text、换行统一 LF、文件内按时间倒序。
  * 每次发布只会追加（或删掉）一行，GitHub 上的 diff 很好读。
  */
-import { fileExists, listBlobPaths, readFileContents, writeTextFile } from './github.ts'
+import {
+  GitHubError,
+  listBlobPaths,
+  readFileContents,
+  readFileWithSha,
+  writeTextFile,
+} from './github.ts'
 import { toHugoDate } from '../types.ts'
 import type { Settings } from '../types.ts'
 
@@ -110,6 +116,11 @@ export async function listMoments(settings: Settings): Promise<Moment[]> {
   if (files.length === 0) return []
 
   const contents = await readFileContents(settings, files.map((file) => file.path))
+  const missing = files.filter((file) => !contents.has(file.path))
+  if (missing.length > 0 && missing.length === files.length) {
+    // 全部读不到 ≠ 一条都没有：让用户看到真实的错误，而不是空列表
+    throw new Error('读取碎碎念失败：连不上 GitHub，检查网络后重试')
+  }
   const all: Moment[] = []
   for (const file of files) {
     const raw = contents.get(file.path)
@@ -128,11 +139,45 @@ export async function listMoments(settings: Settings): Promise<Moment[]> {
   return sortMoments(all)
 }
 
-async function readYear(settings: Settings, path: string): Promise<StoredMoment[]> {
-  const contents = await readFileContents(settings, [path])
-  const raw = contents.get(path)
-  if (!raw) return []
-  return parseMoments(raw, path)
+/**
+ * 写之前重新读一次：内容与 sha 来自同一次 API 调用。
+ * 解析失败直接抛出 —— 宁可报错，也不要用空数组把已有内容覆盖掉。
+ */
+async function readYearForWrite(
+  settings: Settings,
+  path: string,
+): Promise<{ entries: StoredMoment[]; sha: string | null }> {
+  const existing = await readFileWithSha(settings, path)
+  if (!existing) return { entries: [], sha: null }
+  return { entries: parseMoments(existing.text, path), sha: existing.sha }
+}
+
+/**
+ * 读 → 改 → 写。
+ * 遇到 409（同一秒里别处也动过这个文件）就重新读一次再试一次，
+ * 这样手机上点一下重发就能成功，不会卡在「sha 冲突」里。
+ */
+async function updateYear(
+  settings: Settings,
+  path: string,
+  mutate: (entries: StoredMoment[]) => StoredMoment[],
+  message: string,
+): Promise<{ entries: StoredMoment[]; sha: string }> {
+  let lastError: unknown = null
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const { entries, sha } = await readYearForWrite(settings, path)
+    const next = mutate(entries)
+    try {
+      const written = await writeTextFile(settings, path, serializeMoments(next), { sha, message })
+      return { entries: next, sha: written.sha }
+    } catch (error) {
+      lastError = error
+      const conflict = error instanceof GitHubError && (error.status === 409 || error.status === 422)
+      if (attempt === 0 && conflict) continue
+      throw error
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error('写入碎碎念失败，请稍后重试')
 }
 
 /** 追加一条碎碎念，返回新条目与提交信息 */
@@ -150,19 +195,29 @@ export async function postMoment(
   const date = toHugoDate(when)
   const year = date.slice(0, 4)
   const path = momentPathFor(settings, year)
-  const entries = await readYear(settings, path)
-  const entry: StoredMoment = {
-    id: momentIdFor(date, entries.map((item) => item.id)),
-    date,
-    text: content,
-  }
-  const next = sortMoments([...entries, entry])
-  const sha = await fileExists(settings, path)
-  const written = await writeTextFile(settings, path, serializeMoments(next), {
-    sha,
-    message: `moment: ${year} 新增一条碎碎念`,
-  })
-  return { moment: { ...entry, year, file: path }, path, sha: written.sha }
+  const holder: { entry: StoredMoment | null } = { entry: null }
+
+  const { sha } = await updateYear(
+    settings,
+    path,
+    (entries) => {
+      const entry: StoredMoment = {
+        id: momentIdFor(
+          date,
+          entries.map((item) => item.id),
+        ),
+        date,
+        text: content,
+      }
+      holder.entry = entry
+      return sortMoments([...entries, entry])
+    },
+    `moment: ${year} 新增一条碎碎念`,
+  )
+
+  const entry = holder.entry
+  if (!entry) throw new Error('没能生成这条碎碎念，请重试')
+  return { moment: { ...entry, year, file: path }, path, sha }
 }
 
 /** 删除一条碎碎念 */
@@ -171,13 +226,15 @@ export async function removeMoment(
   moment: Moment,
 ): Promise<{ path: string; sha: string }> {
   const path = moment.file || momentPathFor(settings, moment.year)
-  const entries = await readYear(settings, path)
-  const next = entries.filter((entry) => entry.id !== moment.id)
-  if (next.length === entries.length) throw new Error('这条碎碎念已经不在文件里了，刷新看看')
-  const sha = await fileExists(settings, path)
-  const written = await writeTextFile(settings, path, serializeMoments(next), {
-    sha,
-    message: `moment: ${moment.year} 删除一条碎碎念`,
-  })
-  return { path, sha: written.sha }
+  const { sha } = await updateYear(
+    settings,
+    path,
+    (entries) => {
+      const next = entries.filter((entry) => entry.id !== moment.id)
+      if (next.length === entries.length) throw new Error('这条碎碎念已经不在文件里了，刷新看看')
+      return next
+    },
+    `moment: ${moment.year} 删除一条碎碎念`,
+  )
+  return { path, sha }
 }

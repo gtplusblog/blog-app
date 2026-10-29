@@ -20,7 +20,7 @@ import {
   sortMoments,
 } from '../.test-build/lib/moments.js'
 import { invalidateCache } from '../.test-build/lib/github.js'
-import { base64DecodeUtf8 } from '../.test-build/types.js'
+import { base64DecodeUtf8, base64EncodeUtf8 } from '../.test-build/types.js'
 
 const SETTINGS = {
   token: 'test-token',
@@ -56,6 +56,23 @@ const REPO_INFO = {
 
 /** Contents API 会用 encodeURIComponent 把整条路径编码，斜杠也变成 %2F */
 const CONTENTS_2026 = `${API}/contents/${encodeURIComponent('data/moments/2026.json')}`
+
+/** 模拟 GET /contents 的响应：内容 + 当前 sha 来自同一次调用 */
+const blob = (text, sha = SHA.file) => ({
+  sha,
+  content: base64EncodeUtf8(text),
+  encoding: 'base64',
+})
+
+const contentsGet = (handler) => [
+  (href, method) => method === 'GET' && href.split('?')[0] === CONTENTS_2026,
+  handler,
+]
+
+const contentsPut = (handler) => [
+  (href, method) => method === 'PUT' && href.split('?')[0] === CONTENTS_2026,
+  handler,
+]
 
 const OLDER = '[\n  {"id":"20261020-090000","date":"2026-10-20T09:00:00+08:00","text":"更早的一条"}\n]\n'
 
@@ -206,19 +223,11 @@ test('postMoment：新的写在最上面，只提交 data/moments/2026.json', as
   let written = null
   const calls = mockFetch([
     ...baseRoutes(OLDER),
-    [
-      (href, method) =>
-        method === 'GET' && href.split('?')[0] === CONTENTS_2026,
-      () => ({ sha: SHA.file, content: '', encoding: 'base64' }),
-    ],
-    [
-      (href, method) =>
-        method === 'PUT' && href.split('?')[0] === CONTENTS_2026,
-      (_href, init) => {
-        written = JSON.parse(init.body)
-        return { content: { sha: SHA.nextFile, html_url: 'https://github.com/x/y/blob/master/z' } }
-      },
-    ],
+    contentsGet(() => blob(OLDER)),
+    contentsPut((_href, init) => {
+      written = JSON.parse(init.body)
+      return { content: { sha: SHA.nextFile, html_url: 'https://github.com/x/y/blob/master/z' } }
+    }),
   ])
 
   const result = await postMoment(SETTINGS, '  新的一条  ', new Date('2026-10-24T11:39:00+08:00'))
@@ -267,19 +276,11 @@ test('removeMoment 只删掉那一条，其它保持原样', async () => {
   let written = null
   mockFetch([
     ...baseRoutes(twoEntries),
-    [
-      (href, method) =>
-        method === 'GET' && href.split('?')[0] === CONTENTS_2026,
-      () => ({ sha: SHA.file, content: '', encoding: 'base64' }),
-    ],
-    [
-      (href, method) =>
-        method === 'PUT' && href.split('?')[0] === CONTENTS_2026,
-      (_href, init) => {
-        written = JSON.parse(init.body)
-        return { content: { sha: SHA.nextFile, html_url: 'https://github.com/x/y/blob/master/z' } }
-      },
-    ],
+    contentsGet(() => blob(twoEntries)),
+    contentsPut((_href, init) => {
+      written = JSON.parse(init.body)
+      return { content: { sha: SHA.nextFile, html_url: 'https://github.com/x/y/blob/master/z' } }
+    }),
   ])
 
   await removeMoment(SETTINGS, {
@@ -296,4 +297,71 @@ test('removeMoment 只删掉那一条，其它保持原样', async () => {
   assert.ok(!content.includes('要删的'))
   assert.ok(content.includes('留着的'))
   assert.equal(parseMoments(content).length, 1)
+})
+
+test('postMoment 遇到 409（别处刚改过）会重新读一次、用新 sha 再写一次', async () => {
+  const NEW_SHA = 'e'.repeat(40)
+  const CHANGED =
+    '[\n' +
+    '  {"id":"20261024-100000","date":"2026-10-24T10:00:00+08:00","text":"别处刚加的一条"},\n' +
+    '  {"id":"20261020-090000","date":"2026-10-20T09:00:00+08:00","text":"更早的一条"}\n' +
+    ']\n'
+  let reads = 0
+  const calls = mockFetch([
+    ...baseRoutes(OLDER),
+    contentsGet(() => {
+      reads += 1
+      // 第一次读到旧版本；409 之后重新读，拿到别处写过的版本与新 sha
+      return reads === 1 ? blob(OLDER, SHA.file) : blob(CHANGED, NEW_SHA)
+    }),
+    contentsPut((_href, init) => {
+      const attempt = calls.filter((c) => c.method === 'PUT').length
+      JSON.parse(init.body)
+      if (attempt === 1) return { status: 409, body: { message: 'sha does not match' } }
+      return { content: { sha: NEW_SHA, html_url: 'https://github.com/x/y/blob/master/z' } }
+    }),
+  ])
+
+  const result = await postMoment(SETTINGS, '冲突之后补的一条', new Date('2026-10-25T08:00:00+08:00'))
+  assert.equal(result.sha, NEW_SHA)
+
+  const puts = calls.filter((c) => c.method === 'PUT')
+  assert.equal(puts.length, 2, '应当重试一次')
+  assert.equal(JSON.parse(puts[1].body).sha, NEW_SHA, '重试要用重新读到的 sha')
+
+  const finalText = base64DecodeUtf8(JSON.parse(puts[1].body).content)
+  assert.ok(finalText.includes('别处刚加的一条'), '别处写入的内容不能被覆盖掉')
+  assert.ok(finalText.includes('冲突之后补的一条'))
+  assert.equal(parseMoments(finalText).length, 3)
+})
+
+test('已有文件解析不了时只报错，绝不写回（防止清空历史）', async () => {
+  const calls = mockFetch([
+    ...baseRoutes(OLDER),
+    contentsGet(() => ({ sha: SHA.file, content: base64EncodeUtf8('{ 坏掉的 json'), encoding: 'base64' })),
+  ])
+
+  await assert.rejects(
+    () => postMoment(SETTINGS, '不该写进去', new Date('2026-10-25T08:00:00+08:00')),
+    /不是合法的 JSON/,
+  )
+  assert.equal(calls.filter((c) => c.method === 'PUT').length, 0, '解析失败时不能有任何写入')
+})
+
+test('读不到内容时报错，而不是当成「一条都没有」', async () => {
+  mockFetch([
+    [
+      (href, method) => method === 'GET' && href.split('?')[0] === `${API}/commits/master`,
+      () => COMMIT,
+    ],
+    [
+      (href, method) => method === 'GET' && href.split('?')[0] === `${API}/git/trees/${SHA.tree}`,
+      () => TREE,
+    ],
+    [(href, method) => method === 'GET' && href.split('?')[0] === API, () => REPO_INFO],
+    // raw 与 contents 都失败
+    contentsGet(() => ({ status: 500, body: { message: 'boom' } })),
+  ])
+
+  await assert.rejects(() => listMoments(SETTINGS), /连不上 GitHub|失败/)
 })
