@@ -757,6 +757,14 @@ html[data-theme='dark'] .update-bar {
   font-variant-numeric: tabular-nums;
 }
 
+/* 刚发布、还没被下一次刷新确认的那条：给个提示，免得以为没发出去又发一遍 */
+.moment-when .moment-fresh {
+  font-size: 0.66rem;
+  font-weight: 600;
+  color: var(--accent);
+  letter-spacing: 0.02em;
+}
+
 .moment-text {
   margin: 0;
   font-size: 0.95rem;

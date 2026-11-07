@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useStore } from '../lib/store-context'
-import { listMoments, MOMENT_MAX_LENGTH, postMoment, removeMoment } from '../lib/moments'
+import { listMoments, mergePendingMoments, MOMENT_MAX_LENGTH, postMoment, removeMoment, sortMoments } from '../lib/moments'
 import type { Moment } from '../lib/moments'
 
 interface Props {
@@ -29,6 +29,9 @@ export function MomentsScreen({ onBack, onSettings }: Props) {
   const [loading, setLoading] = useState(false)
   const [posting, setPosting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  /** 刚发布、还没在远端快照里看到的条目：列表里先留着，别让一次旧快照把新条冲掉 */
+  const pendingRef = useRef<Moment[]>([])
+  const [freshIds, setFreshIds] = useState<string[]>([])
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
   const configured = Boolean(settings.token && settings.owner && settings.repo)
@@ -41,7 +44,11 @@ export function MomentsScreen({ onBack, onSettings }: Props) {
         setError(null)
       }
       try {
-        setMoments(await listMoments(settings))
+        const remote = await listMoments(settings)
+        const merged = mergePendingMoments(remote, pendingRef.current)
+        pendingRef.current = merged.pending
+        setFreshIds(merged.pending.map((moment) => moment.id))
+        setMoments(merged.list)
         setError(null)
       } catch (err) {
         // 后台刷新（发布后那次）失败时不弹红框，免得刚发成功就吓人
@@ -72,9 +79,11 @@ export function MomentsScreen({ onBack, onSettings }: Props) {
       const { moment } = await postMoment(settings, content, new Date())
       setText('')
       setError(null)
-      setMoments((prev) => [moment, ...prev])
+      pendingRef.current = [moment, ...pendingRef.current.filter((item) => item.id !== moment.id)]
+      setFreshIds((prev) => [moment.id, ...prev.filter((id) => id !== moment.id)])
+      setMoments((prev) => sortMoments([moment, ...prev.filter((item) => item.id !== moment.id)]))
       pushToast('success', '已经发布，等 GitHub 构建完就会出现在博客上')
-      // GitHub 构建需要几十秒；稍后再拉一次，拿到真实顺序
+      // GitHub 构建需要几十秒；稍后再拉一次，拿到真实顺序（读到旧版本也不会冲掉刚发的这条）
       window.setTimeout(() => void refresh(true), 4000)
     } catch (err) {
       const message = err instanceof Error ? err.message : '发布失败'
@@ -90,6 +99,8 @@ export function MomentsScreen({ onBack, onSettings }: Props) {
     if (!window.confirm(`删除「${moment.text.slice(0, 24)}…」这条碎碎念？`)) return
     try {
       await removeMoment(settings, moment)
+      pendingRef.current = pendingRef.current.filter((item) => item.id !== moment.id)
+      setFreshIds((prev) => prev.filter((id) => id !== moment.id))
       setMoments((prev) => prev.filter((item) => item.id !== moment.id))
       pushToast('success', '已删除')
     } catch (err) {
@@ -194,6 +205,7 @@ export function MomentsScreen({ onBack, onSettings }: Props) {
               <div className="moment-when">
                 <strong>{timeOf(moment.date)}</strong>
                 <span>{dayOf(moment.date)}</span>
+                {freshIds.includes(moment.id) && <span className="moment-fresh">刚发布</span>}
               </div>
               <p className="moment-text">{moment.text}</p>
               <button

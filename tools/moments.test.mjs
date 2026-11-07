@@ -11,6 +11,7 @@ import assert from 'node:assert/strict'
 
 import {
   listMoments,
+  mergePendingMoments,
   momentIdFor,
   MOMENT_MAX_LENGTH,
   parseMoments,
@@ -66,6 +67,14 @@ const blob = (text, sha = SHA.file) => ({
 
 const contentsGet = (handler) => [
   (href, method) => method === 'GET' && href.split('?')[0] === CONTENTS_2026,
+  handler,
+]
+
+/** 2025 年那份文件的 Contents API 路由，供 listMoments 多文件合并的用例使用 */
+const contentsGet2025 = (handler) => [
+  (href, method) =>
+    method === 'GET' &&
+    href.split('?')[0] === `${API}/contents/${encodeURIComponent('data/moments/2025.json')}`,
   handler,
 ]
 
@@ -206,17 +215,48 @@ test('排序：时间倒序，同一秒内 id 大的在前', () => {
 /* -------------------------------------------------------------- 读写流程 */
 
 test('listMoments 只读 YYYY.json，并按时间倒序合并多个年份', async () => {
-  mockFetch(
-    baseRoutes(
-      OLDER,
-      '[\n  {"id":"20251231-235900","date":"2025-12-31T23:59:00+08:00","text":"去年最后一条"}\n]\n',
-    ),
-  )
+  const PREV = '[\n  {"id":"20251231-235900","date":"2025-12-31T23:59:00+08:00","text":"去年最后一条"}\n]\n'
+  const calls = mockFetch([
+    ...baseRoutes(OLDER, PREV),
+    contentsGet(() => blob(OLDER)),
+    contentsGet2025(() => blob(PREV, '2'.repeat(40))),
+  ])
 
   const moments = await listMoments(SETTINGS)
   assert.deepEqual(moments.map((m) => m.id), ['20261020-090000', '20251231-235900'])
   assert.equal(moments[0].file, 'data/moments/2026.json')
   assert.equal(moments[1].year, '2025')
+  assert.ok(
+    calls.every((call) => !call.url.includes('raw.githubusercontent.com')),
+    '列表页应走 Contents API：raw 有 CDN 缓存，刚发布完会读到旧版本',
+  )
+})
+
+test('mergePendingMoments：刚发布但远端快照里还没有的那条留在列表里，读到后自动放手', () => {
+  const older = {
+    id: '20261020-090000',
+    date: '2026-10-20T09:00:00+08:00',
+    text: '更早的一条',
+    year: '2026',
+    file: 'data/moments/2026.json',
+  }
+  const fresh = {
+    id: '20261106-140200',
+    date: '2026-11-06T14:02:00+08:00',
+    text: '刚发的一条',
+    year: '2026',
+    file: 'data/moments/2026.json',
+  }
+
+  // 远端快照还是旧的：刚发的那条必须留在最上面，否则用户会以为没发出去
+  const stale = mergePendingMoments([older], [fresh])
+  assert.deepEqual(stale.list.map((m) => m.id), [fresh.id, older.id])
+  assert.deepEqual(stale.pending.map((m) => m.id), [fresh.id])
+
+  // 下一次刷新读到了：pending 清空，列表按时间倒序排
+  const confirmed = mergePendingMoments([fresh, older], stale.pending)
+  assert.deepEqual(confirmed.list.map((m) => m.id), [fresh.id, older.id])
+  assert.deepEqual(confirmed.pending, [])
 })
 
 test('postMoment：新的写在最上面，只提交 data/moments/2026.json', async () => {

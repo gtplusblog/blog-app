@@ -11,13 +11,7 @@
  * 规则：一条一行、字段顺序固定 id/date/text、换行统一 LF、文件内按时间倒序。
  * 每次发布只会追加（或删掉）一行，GitHub 上的 diff 很好读。
  */
-import {
-  GitHubError,
-  listBlobPaths,
-  readFileContents,
-  readFileWithSha,
-  writeTextFile,
-} from './github.ts'
+import { GitHubError, listBlobPaths, readFileWithSha, writeTextFile } from './github.ts'
 import { toHugoDate } from '../types.ts'
 import type { Settings } from '../types.ts'
 
@@ -106,6 +100,23 @@ export function sortMoments<T extends { date: string; id: string }>(entries: T[]
   })
 }
 
+/**
+ * 把「刚发布、但远端快照里还没出现」的条目补回列表。
+ *
+ * 发布成功后界面会马上刷新一次；只要那次读到的还是 GitHub 的旧版本
+ * （网络慢、CDN 缓存、构建还没跑完），新条目就会从列表里消失，
+ * 让人以为没发出去、于是再发一遍。这里把这类条目留在列表顶部，
+ * 等哪次刷新真的读到了再从 pending 里放手。
+ */
+export function mergePendingMoments(
+  remote: Moment[],
+  pending: Moment[],
+): { list: Moment[]; pending: Moment[] } {
+  const remoteIds = new Set(remote.map((moment) => moment.id))
+  const stillPending = pending.filter((moment) => !remoteIds.has(moment.id))
+  return { list: sortMoments([...remote, ...stillPending]), pending: stillPending }
+}
+
 /* -------------------------------------------------------------------- 读写 */
 
 /** 读取全部年份的碎碎念，按时间倒序 */
@@ -115,7 +126,21 @@ export async function listMoments(settings: Settings): Promise<Moment[]> {
   )
   if (files.length === 0) return []
 
-  const contents = await readFileContents(settings, files.map((file) => file.path))
+  // 走 Contents API 而不是 raw.githubusercontent.com：raw 有 CDN 缓存，
+  // 刚发布完再刷一次会读到旧版本，列表里就看不到刚发的那条，
+  // 用户会以为没发出去、再发一遍（2026-11 就是因此把一条发了两遍）。
+  // 碎碎念一年才一个文件，多一两次 API 调用换「发布后立刻可见」很值。
+  const contents = new Map<string, string>()
+  await Promise.all(
+    files.map(async (file) => {
+      try {
+        const fresh = await readFileWithSha(settings, file.path)
+        if (fresh) contents.set(file.path, fresh.text)
+      } catch {
+        // 单个文件读失败不阻塞其它文件
+      }
+    }),
+  )
   const missing = files.filter((file) => !contents.has(file.path))
   if (missing.length > 0 && missing.length === files.length) {
     // 全部读不到 ≠ 一条都没有：让用户看到真实的错误，而不是空列表
